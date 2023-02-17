@@ -1,0 +1,29 @@
+---
+dev: /dev/nvme0n2
+
+partition:
+  - number: 1
+    start: '0%'
+    end: 1GiB
+  - number: 2
+    start: 1GiB
+    end: 2GiB
+  - number: 3
+    start: 2GiB
+    end: 3GiB
+
+lvg_groups:
+  - name: vg1
+    physical: 
+      - /dev/nvme0n2p1
+      - /dev/nvme0n2p2
+      - /dev/nvme0n2p3
+
+lvs:
+  - lvs_name: test1
+    vgroup: vg1
+    path: /data
+  - lvs_name: test2
+    vgroup: vg1
+    path: /backup
+

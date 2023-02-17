@@ -1,0 +1,84 @@
+#Author:Motasem Aljaafreh
+#Email:w3li3m@gmail.com
+---
+- name: Install lamp server on Redhat or Centos
+  hosts: app
+  tasks:
+    - name: Install all packages using loop
+      yum:
+        name: "{{ item }}"
+        state: present
+        update_cache: yes
+      loop:
+        - httpd
+        - mariadb-server
+        - php
+        - php-mysqlnd
+        - python3-mysqlclient
+
+    - name: adding the services to filewall
+      firewalld:
+        service: "{{ item }}"
+        permanent: yes
+        state: enabled
+      loop:
+        - http
+        - https
+        - mysql
+
+    - name: copy index webserver file from ansible master to nodes
+      copy:
+        src: /home/ansible/course1/index.php
+        dest: /var/www/html/
+
+    - name: start and enable services
+      service:
+        name: "{{ item }}"
+        state: started
+        enabled: yes
+      loop:
+        - httpd
+        - mariadb
+
+    - name: open httpd_can_network_connect_db in selinux policy
+      seboolean:
+        name: httpd_can_network_connect_db
+        state: yes
+        persistent: yes
+
+    - name: create a new database
+      mysql_db:
+        name:
+          - sales
+          - devops
+        state: present
+
+    - name:  removes all anonymous user accounts from database
+      mysql_user:
+      name: ''
+      host_all: yes
+      state: absent
+      login_unix_socket: /run/mysqld/mysqld.sock
+
+
+    - name: create a new database
+      mysql_db:
+        name:
+          - sales
+          - devops
+        state: present
+
+    - name: removes all anonymous users accounts
+      mysql_user:
+        name: ''
+        host_all: yes
+        state: absent
+          #login_unix_socket: /run/mysqld/mysqld.sock
+
+
+    - name:  Create a new user with Grant Permissions in MySQL
+      name: motasem
+      password: 12345
+      priv: '*.*:ALL,GRANT'
+      state: present
+

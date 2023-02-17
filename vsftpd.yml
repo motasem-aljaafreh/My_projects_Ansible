@@ -1,0 +1,65 @@
+#Author:Motasem Aljaafreh
+#Email:w3li3m@gmail.com
+---
+- name: Deploy FTP Server and Publish 
+  hosts: localhost
+  become: yes
+  tasks:
+    - name: Install Package vsftpd
+      yum:
+        name: vsftpd
+        state: present
+
+    - name: Start and Enabled vsftpd Service
+      service:
+        name: vsftpd
+        state: started
+        enabled: yes
+
+    - name: Adding ftp Service to firewall
+      firewalld:
+        service: ftp
+        permanent: yes
+        immediate: yes
+        state: enabled
+
+- name: Confiuger vsftpd using template
+  hosts: localhost
+  become: yes
+  vars:
+    - anonymous_enable: yes
+    - local_enable: yes
+    - write_enable: yes
+    - anon_upload_enable: yes
+  tasks:
+    - name: Use template to copy configurations files
+      template:
+        src: vsftpd.j2
+        dest: /etc/vsftpd/vsftpd.conf
+
+- name: Configuer vsftpd permissions with selinux
+  hosts: localhost
+  become: yes
+  tasks:
+    - name: change path permission directory 
+      file:
+        path: /var/ftp/pub
+        mode: 0777
+
+    - name: set selinux boolean 
+      seboolean:
+        name: ftpd_anon_write
+        state: yes
+        persistent: yes
+
+    - name: Change selinux fcontext directory
+      sefcontext:
+        target: /var/ftp/pub
+        setype: public_content_rw_t
+        state: present
+      notify:
+        - run restorecon
+
+  handlers:
+    - name: run restorecon
+      command: restorecon -vR /var/ftp/pub

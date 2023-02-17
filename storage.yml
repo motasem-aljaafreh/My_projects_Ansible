@@ -1,0 +1,49 @@
+#Author:Motasem Aljaafreh
+#Email:w3li3m@gmail.com
+---
+- name: Create 3 partitions then create pvs & vg & lvm then create filesytem and mounted
+  hosts: localhost
+  vars_files:
+    - vars/storage_vars.yml
+  
+  tasks:
+  - name: Create partitions with through loops and variables
+    parted:
+      device: "{{ dev }}"
+      number: "{{ item.number}}"
+      part_start: "{{ item.start }}"
+      part_end: "{{ item.end }}"
+      state: present
+    loop: "{{ partition }}"
+    tags: pvs
+
+  - name: Create voulme group through loops and variables
+    lvg:
+      vg: "{{ item.name }}"
+      pvs: "{{ item.physical }}"
+    loop: "{{ lvg_groups }}"
+    tags: lvg
+
+  - name: Create logical volume through loops and variables
+    lvol:
+      vg: "{{ item.vgroup }}"
+      lv: "{{ item.lvs_name }}"
+      size: 500m
+    loop: "{{ lvs }}"
+    tags: lvs
+
+  - name: Create xfs filesystem on each logical volume
+    filesystem:
+      dev: "/dev/{{ item.vgroup }}/{{ item.lvs_name }}"
+      fstype: xfs
+    loop: "{{ lvs }}"
+    tags: fs
+
+  - name: Assign a mount point path
+    mount:
+      path: "{{ item.path }}"
+      src: "/dev/{{ item.vgroup }}/{{ item.lvs_name }}"
+      fstype: xfs
+      state: mounted
+    loop: "{{ lvs }}"
+    tags: mount
